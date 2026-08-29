@@ -13,7 +13,7 @@ git checkout v1.0.0
 ./scripts/self-host.sh bootstrap
 ```
 
-`bootstrap` は `deploy/self-hosted/supabase/` へ公式bundleを展開し、Supabaseの鍵に加えて次のCommunity用Secretを生成します。このディレクトリはGit管理されません。
+`bootstrap` は `deploy/self-hosted/supabase/` へ公式bundleを展開し、Supabaseの鍵に加えて次のCommunity用Secretを生成します。生成値は端末へ出力せず、`.env` は所有者だけが読み書きできる `0600` で作成します。このディレクトリはGit管理されません。
 
 - `AI_CREDENTIALS_MASTER_KEY_V1`
 - `SESSION_TOKEN_DERIVATION_KEY`
@@ -88,6 +88,8 @@ INSTAGRAM_API_VERSION=v25.0
 - `meo-api`
 - `meo-jobs`
 - `meo-workspace`
+
+Compose overrideはdispatcher共通の `VERIFY_JWT` を `false` に固定します。dispatcherにはFunctionごとの設定がないためです。`owner-api` と `meo-workspace`、`meo-api` の `/v1/*` は、各Function内のSupabase user middlewareで利用者を検証します。`meo-api` のOAuth flowでは、callbackで保存済みstateを確認します。その後、利用者認証が必要な完了routeでbrowser challengeを照合します。`meo-jobs` は専用Bearer token、`public-interview` はpublishable key用middlewareを使います。
 
 ## 5. 確認
 

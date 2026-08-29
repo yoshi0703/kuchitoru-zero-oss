@@ -13,7 +13,7 @@ git checkout v1.0.0
 ./scripts/self-host.sh bootstrap
 ```
 
-`bootstrap` expands the official bundle into `deploy/self-hosted/supabase/` and generates these Community secrets in addition to the Supabase keys. The directory is ignored by Git.
+`bootstrap` expands the official bundle into `deploy/self-hosted/supabase/` and generates these Community secrets in addition to the Supabase keys. It does not print generated values, and it creates `.env` with mode `0600` so only its owner can read or write it. The directory is ignored by Git.
 
 - `AI_CREDENTIALS_MASTER_KEY_V1`
 - `SESSION_TOKEN_DERIVATION_KEY`
@@ -88,6 +88,8 @@ The dispatcher in the official Functions container routes these five Functions:
 - `meo-api`
 - `meo-jobs`
 - `meo-workspace`
+
+The Compose override pins the dispatcher's global `VERIFY_JWT` setting to `false` because the dispatcher cannot configure it per Function. `owner-api`, `meo-workspace`, and the `/v1/*` routes in `meo-api` verify users through Supabase user middleware inside each Function. The `meo-api` OAuth flow checks stored state at the callback. It then checks the browser challenge on the authenticated completion route. `meo-jobs` compares its dedicated bearer token, while `public-interview` uses publishable-key middleware.
 
 ## 5. Verify
 

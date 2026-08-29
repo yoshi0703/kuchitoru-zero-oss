@@ -49,10 +49,12 @@ bootstrap() {
   mkdir -p "$BUNDLE_DIR"
   cp -R "$temp_dir/supabase/docker/." "$BUNDLE_DIR/"
   cp "$BUNDLE_DIR/.env.example" "$BUNDLE_DIR/.env"
+  chmod 600 "$BUNDLE_DIR/.env"
   (
     cd "$BUNDLE_DIR"
-    sh utils/generate-keys.sh --update-env
-    sh utils/add-new-auth-keys.sh --update-env
+    umask 077
+    sh utils/generate-keys.sh --update-env >/dev/null
+    sh utils/add-new-auth-keys.sh --update-env >/dev/null
   )
 
   ai_master_key=$(openssl rand -base64 32)
@@ -117,7 +119,8 @@ case "${1:-}" in
     compose logs -f "$@"
     ;;
   config)
-    compose config
+    compose config --quiet
+    printf 'Docker Compose configuration is valid.\n'
     ;;
   seed)
     compose run --rm community-seed

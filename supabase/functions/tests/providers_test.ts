@@ -306,6 +306,84 @@ Deno.test("review generation sends only ordered user answers inside the untruste
   assertEquals(captured?.max_output_tokens, 1200);
 });
 
+Deno.test("AI prompts mask explicit personal information without guessing names", async () => {
+  const captured: Record<string, unknown>[] = [];
+  const client = {
+    responses: {
+      create: (value: Record<string, unknown>) => {
+        captured.push(value);
+        return Promise.resolve({
+          id: `resp_masked_${captured.length}`,
+          output_text: captured.length === 1
+            ? "待ち時間が長かったです。"
+            : "率直なご意見をありがとうございます。ご期待に沿えず申し訳ございません。",
+          usage: { input_tokens: 10, output_tokens: 8 },
+        });
+      },
+    },
+  } as unknown as OpenAI;
+  const provider = new OpenAiProvider(
+    "not-a-real-key",
+    "openai-test-model",
+    client,
+  );
+  await provider.generateReview({
+    context: {
+      ...context,
+      messages: [{
+        role: "user",
+        sequence: 1,
+        content:
+          "山田太郎です。連絡先はtaro@example.com。電話は090-1234-5678。別の電話は０９０－１２３４－５６７８。郵便番号は〒160-0023。別の郵便番号は〒１６０－００２３。住所: 東京都新宿区西新宿1-2-3。",
+      }],
+    },
+    model: "openai-test-model",
+    requestId: "request-review-masked",
+  });
+  await provider.draftReviewReply({
+    draft: {
+      rating: 1,
+      reviewComment:
+        "山田太郎です。連絡先はreviewer@example.net。電話は03-1234-5678。所在地は東京都千代田区丸の内1-1-1。",
+      storeName: "テスト店舗",
+      industry: "飲食店",
+      tone: "polite",
+    },
+    model: "openai-test-model",
+    requestId: "request-reply-masked",
+  });
+
+  const reviewInput = JSON.parse(
+    String(captured[0]?.input).split("\n")[1]!,
+  ) as {
+    answers: string[];
+  };
+  const replyInput = JSON.parse(String(captured[1]?.input).split("\n")[2]!) as {
+    reviewComment: string;
+  };
+  const serialized = JSON.stringify([reviewInput, replyInput]);
+  assert(serialized.includes("山田太郎"));
+  assert(serialized.includes("[メールアドレス]"));
+  assert(serialized.includes("[電話番号]"));
+  assert(serialized.includes("[郵便番号]"));
+  assert(serialized.includes("[住所]"));
+  for (
+    const rawPersonalInformation of [
+      "taro@example.com",
+      "reviewer@example.net",
+      "090-1234-5678",
+      "０９０－１２３４－５６７８",
+      "03-1234-5678",
+      "160-0023",
+      "１６０－００２３",
+      "東京都新宿区西新宿1-2-3",
+      "東京都千代田区丸の内1-1-1",
+    ]
+  ) {
+    assert(!serialized.includes(rawPersonalInformation));
+  }
+});
+
 Deno.test("review rewrite uses the natural Japanese style rules", async () => {
   let captured: Record<string, unknown> | undefined;
   const injected =
@@ -781,6 +859,40 @@ Deno.test("DeepSeek rejects truncated or empty final content", async () => {
           requestId: "request-deepseek-invalid",
         }),
       "正しい応答",
+    );
+  }
+});
+
+Deno.test("fetch-based AI providers reject oversized response bodies safely", async () => {
+  const oversizedResponse = () =>
+    Promise.resolve(
+      new Response("{}", {
+        status: 200,
+        headers: { "Content-Length": "2000001" },
+      }),
+    );
+  const providers = [
+    new DeepSeekProvider(
+      "not-a-real-key",
+      "deepseek-test",
+      oversizedResponse,
+    ),
+    new AnthropicProvider(
+      "not-a-real-key",
+      "claude-sonnet-5",
+      oversizedResponse,
+    ),
+  ];
+
+  for (const provider of providers) {
+    await assertRejects(
+      () =>
+        provider.generateReview({
+          context,
+          model: "provider-test-model",
+          requestId: "request-oversized-response",
+        }),
+      "AIによる処理を完了できません",
     );
   }
 });

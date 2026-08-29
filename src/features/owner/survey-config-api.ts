@@ -23,7 +23,7 @@ export async function getSurveyConfig(storeId: string): Promise<SurveyDefinition
 export async function saveSurveyConfig(storeId: string, input: SurveyDefinitionV4): Promise<SurveyDefinitionV4> {
   const parsed = SURVEY_DEFINITION_SCHEMA.parse(input)
   if (runtimeConfig.isE2ETestMode) {
-    e2eSurveyConfig = structuredClone(parsed)
+    e2eSurveyConfig = structuredClone({ ...parsed, revision: parsed.revision + 1 })
     return structuredClone(e2eSurveyConfig)
   }
 

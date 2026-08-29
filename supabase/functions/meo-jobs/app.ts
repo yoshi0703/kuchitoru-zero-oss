@@ -1,5 +1,6 @@
 import { type Context, Hono } from "hono";
 import type { CredentialCipher } from "../_shared/ai-credentials.ts";
+import { AppError, readRequestTextWithinLimit } from "../_shared/http.ts";
 import {
   type DataForSeoCredential,
   decryptExternalCredential,
@@ -271,6 +272,7 @@ export function performanceTotals(
 }
 
 function errorCode(error: unknown): string {
+  if (error instanceof AppError) return error.code;
   if (error instanceof WorkerFailure) return error.code;
   const message = error instanceof Error
     ? error.message
@@ -609,10 +611,7 @@ async function boundedBody(request: Request): Promise<Record<string, unknown>> {
   if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
     throw new Error("PAYLOAD_TOO_LARGE");
   }
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) {
-    throw new Error("PAYLOAD_TOO_LARGE");
-  }
+  const text = await readRequestTextWithinLimit(request, MAX_BODY_BYTES);
   if (!text) return {};
   const value = JSON.parse(text) as unknown;
   if (value === null || Array.isArray(value) || typeof value !== "object") {

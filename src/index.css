@@ -1276,7 +1276,6 @@ th { color:var(--muted); background:#fafafa; font-size:13px; font-weight:500; li
 }
 
 @media (max-width:800px) {
-  .owner-main, .owner-content, .owner-page,
   .owner-topbar { height:52px; padding:max(6px,env(safe-area-inset-top)) 14px 6px; }
   .owner-store-switcher__label { display:none; }
   .owner-store-switcher__control { width:min(42vw,180px); }

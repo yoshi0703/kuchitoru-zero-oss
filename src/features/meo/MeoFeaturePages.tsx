@@ -145,17 +145,20 @@ function OperationError({ error }: { error: Error; storeId: string }) {
 
 function PublishGate({
   previewReady,
+  approvalKey,
   actionLabel,
   onPublish,
 }: {
   previewReady: boolean;
+  approvalKey: string;
   actionLabel: string;
   onPublish?: () => Promise<unknown>;
 }) {
   const { locale } = useI18n();
   const t = (ja: string, en: string) => (locale === "ja" ? ja : en);
   const storeId = useActiveStoreId();
-  const [approved, setApproved] = useState(false);
+  const [approvedKey, setApprovedKey] = useState<string | null>(null);
+  const approved = approvedKey === approvalKey;
   const [showConnectionNotice, setShowConnectionNotice] = useState(false);
   const externalWritesQuery = useQuery({
     queryKey: ["meo-external-writes", storeId],
@@ -186,7 +189,7 @@ function PublishGate({
           checked={externalWritesEnabled && canExecuteExternalWrites && approved}
           disabled={!previewReady || !externalWritesEnabled || !canExecuteExternalWrites || mutation.isSuccess}
           onChange={(event) => {
-            setApproved(event.target.checked);
+            setApprovedKey(event.target.checked ? approvalKey : null);
             setShowConnectionNotice(false);
           }}
         />
@@ -298,6 +301,11 @@ export function ReviewReplyPage() {
   const [rating, setRating] = useState(5);
   const [tone, setTone] = useState<"polite" | "warm" | "short">("polite");
   const [reply, setReply] = useState("");
+  const [replyRevision, setReplyRevision] = useState(0);
+  const updateReply = (value: string) => {
+    setReply(value);
+    setReplyRevision((revision) => revision + 1);
+  };
   const [loadGoogleReviews, setLoadGoogleReviews] = useState(false);
   const [selectedReview, setSelectedReview] = useState<GoogleReview | null>(
     null,
@@ -322,7 +330,7 @@ export function ReviewReplyPage() {
         generationMode:
           executionMode === "owner_provider" ? "owner_provider" : "template",
       }),
-    onSuccess: (draft) => setReply(draft.reply),
+    onSuccess: (draft) => updateReply(draft.reply),
   });
 
   const submit = (event: FormEvent) => {
@@ -383,7 +391,7 @@ export function ReviewReplyPage() {
                   setRating(
                     Math.min(5, Math.max(1, Math.round(item.rating ?? 3))),
                   );
-                  setReply("");
+                  updateReply("");
                 }}
               >
                 <strong>
@@ -480,7 +488,7 @@ export function ReviewReplyPage() {
             )}
             <textarea
               value={reply}
-              onChange={(event) => setReply(event.target.value)}
+              onChange={(event) => updateReply(event.target.value)}
             />
           </label>
           <CopyButton
@@ -489,6 +497,11 @@ export function ReviewReplyPage() {
           />
           <PublishGate
             previewReady={reply.trim() !== ""}
+            approvalKey={JSON.stringify([
+              storeId,
+              selectedReview?.name ?? null,
+              replyRevision,
+            ])}
             actionLabel={
               selectedReview
                 ? t("確認してGoogleへ返信する", "Review and reply on Google")
@@ -2013,6 +2026,11 @@ export function InstagramToGbpPage() {
   const storeId = useActiveStoreId();
   const [caption, setCaption] = useState("");
   const [post, setPost] = useState("");
+  const [postRevision, setPostRevision] = useState(0);
+  const updatePost = (value: string) => {
+    setPost(value);
+    setPostRevision((revision) => revision + 1);
+  };
   const [imageUrl, setImageUrl] = useState("");
   const [loadMedia, setLoadMedia] = useState(false);
   const [excludedHashtags, setExcludedHashtags] = useState("");
@@ -2030,7 +2048,7 @@ export function InstagramToGbpPage() {
         caption,
         excludedHashtags: normalizedExcludedHashtags,
       }),
-    onSuccess: (draft) => setPost(draft.summary),
+    onSuccess: (draft) => updatePost(draft.summary),
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -2091,7 +2109,7 @@ export function InstagramToGbpPage() {
                 onClick={() => {
                   setCaption(media.caption ?? "");
                   setImageUrl(media.mediaUrl ?? "");
-                  setPost("");
+                  updatePost("");
                 }}
               >
                 <strong>
@@ -2167,7 +2185,7 @@ export function InstagramToGbpPage() {
             <textarea
               value={post}
               maxLength={1500}
-              onChange={(event) => setPost(event.target.value)}
+              onChange={(event) => updatePost(event.target.value)}
             />
           </label>
           <div className="meo-character-count">
@@ -2179,6 +2197,11 @@ export function InstagramToGbpPage() {
           />
           <PublishGate
             previewReady={post.trim() !== ""}
+            approvalKey={JSON.stringify([
+              storeId,
+              imageUrl || null,
+              postRevision,
+            ])}
             actionLabel={t(
               "確認してGoogleへ投稿する",
               "Review and post to Google",

@@ -223,6 +223,75 @@ test("口コミ返信は低評価向け案を作り、確認なしでは投稿�
   expect(screen.queryByText(/投稿しました/)).not.toBeInTheDocument();
 });
 
+test("口コミ返信は本文の編集・再生成後に再確認を求める", async () => {
+  serviceMocks.getGoogleReviews.mockResolvedValue([
+    {
+      name: "accounts/account-1/locations/location-1/reviews/review-1",
+      reviewerName: "山田太郎",
+      rating: 2,
+      comment: "待ち時間が長かったです",
+      createTime: "2026-08-20T03:00:00.000Z",
+      updateTime: "2026-08-20T03:00:00.000Z",
+      replyComment: null,
+      replyUpdateTime: null,
+    },
+  ]);
+  serviceMocks.createReviewReplyDraft
+    .mockResolvedValueOnce({
+      reply: "初回の返信案です。",
+      source: "template",
+      requiresReview: true,
+    })
+    .mockResolvedValueOnce({
+      reply: "再生成後の返信案です。",
+      source: "template",
+      requiresReview: true,
+    });
+  serviceMocks.publishGoogleReviewReply.mockResolvedValue({
+    sent: true,
+    sentAt: "2026-08-30T03:00:00.000Z",
+  });
+
+  renderPage(<ReviewReplyPage />);
+  fireEvent.click(screen.getByRole("button", { name: "Googleの口コミを読み込む" }));
+  fireEvent.click(await screen.findByRole("button", { name: /山田太郎/u }));
+  fireEvent.click(screen.getByRole("button", { name: "返信案を作る" }));
+
+  const firstDraft = await screen.findByDisplayValue("初回の返信案です。");
+  const approval = screen.getByLabelText(
+    "この内容をGoogleに投稿してよいことを確認しました",
+  );
+  const publish = screen.getByRole("button", {
+    name: "確認してGoogleへ返信する",
+  });
+  fireEvent.click(approval);
+  expect(publish).toBeEnabled();
+
+  fireEvent.change(firstDraft, { target: { value: "手直しした返信案です。" } });
+  expect(approval).not.toBeChecked();
+  expect(publish).toBeDisabled();
+
+  fireEvent.click(approval);
+  expect(publish).toBeEnabled();
+  fireEvent.click(screen.getByRole("button", { name: "返信案を作る" }));
+  expect(await screen.findByDisplayValue("再生成後の返信案です。")).toBeVisible();
+  expect(approval).not.toBeChecked();
+  expect(publish).toBeDisabled();
+
+  fireEvent.click(approval);
+  fireEvent.click(publish);
+  await waitFor(() =>
+    expect(serviceMocks.publishGoogleReviewReply).toHaveBeenCalledWith(
+      "44444444-4444-4444-8444-444444444444",
+      {
+        reviewName: "accounts/account-1/locations/location-1/reviews/review-1",
+        comment: "再生成後の返信案です。",
+        confirmed: true,
+      },
+    ),
+  );
+});
+
 test("English reply UI preserves Japanese review text and sends the active locale", async () => {
   window.localStorage.setItem(LOCALE_STORAGE_KEY, "en");
   renderPage(<ReviewReplyPage />);
@@ -302,6 +371,48 @@ test("Instagram文はタグを除いてプレビューし、外部投稿成功�
   expect(screen.queryByText(/投稿しました/)).not.toBeInTheDocument();
 });
 
+test("Instagram投稿は本文を編集すると再確認を求める", async () => {
+  serviceMocks.publishInstagramDraftToGoogle.mockResolvedValue({
+    published: true,
+    publishedAt: "2026-08-30T03:00:00.000Z",
+  });
+  renderPage(<InstagramToGbpPage />);
+  fireEvent.change(screen.getByLabelText("Instagramに投稿した文章"), {
+    target: { value: "本日も営業中です。" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Google投稿用に整える" }));
+
+  const preview = await screen.findByLabelText(
+    "日付・価格・リンクを確認してから使ってください",
+  );
+  const approval = screen.getByLabelText(
+    "この内容をGoogleに投稿してよいことを確認しました",
+  );
+  const publish = screen.getByRole("button", {
+    name: "確認してGoogleへ投稿する",
+  });
+  fireEvent.click(approval);
+  expect(publish).toBeEnabled();
+
+  fireEvent.change(preview, { target: { value: "営業時間を変更しました。" } });
+  fireEvent.change(preview, { target: { value: "本日も営業中です。" } });
+  expect(approval).not.toBeChecked();
+  expect(publish).toBeDisabled();
+
+  fireEvent.change(preview, { target: { value: "営業時間を変更しました。" } });
+  fireEvent.click(approval);
+  fireEvent.click(publish);
+  await waitFor(() =>
+    expect(serviceMocks.publishInstagramDraftToGoogle).toHaveBeenCalledWith(
+      "44444444-4444-4444-8444-444444444444",
+      {
+        summary: "営業時間を変更しました。",
+        confirmed: true,
+      },
+    ),
+  );
+});
+
 test("外部書き込みが無効でもInstagram投稿文をコピーでき、Google送信はできない", async () => {
   serviceMocks.getMeoExternalWriteSettings.mockResolvedValue({
     enabled: false,
@@ -345,7 +456,9 @@ test("analystは外部書き込みが有効でも文案のコピーだけ利用�
     screen.getByRole("button", { name: "確認してGoogleへ投稿する" }),
   ).toBeDisabled();
   expect(
-    screen.getByText("閲覧専用の担当者はGoogleへ送信できません。文章のコピーは利用できます。"),
+    await screen.findByText(
+      "閲覧専用の担当者はGoogleへ送信できません。文章のコピーは利用できます。",
+    ),
   ).toBeVisible();
   expect(serviceMocks.publishInstagramDraftToGoogle).not.toHaveBeenCalled();
 });

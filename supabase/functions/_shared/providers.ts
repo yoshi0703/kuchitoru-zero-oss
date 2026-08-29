@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import OpenAI from "openai";
+import { readResponseTextWithinLimit } from "./external-response.ts";
 import { AppError } from "./http.ts";
 import type {
   AiOperation,
@@ -54,11 +55,32 @@ function providerPromptTooLarge(): AppError {
   });
 }
 
+function maskPersonalInformation(value: string): string {
+  return value
+    .replace(
+      /\b[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+\b/giu,
+      "[メールアドレス]",
+    )
+    .replace(
+      /(^|[^0-9０-９])(?:\+81(?:[\s().（）‐‑‒–—―−ー－-]*[0-9０-９]){9,10}|[0０](?:[\s().（）‐‑‒–—―−ー－-]*[0-9０-９]){9,10})(?=$|[^0-9０-９])/gu,
+      "$1[電話番号]",
+    )
+    .replace(
+      /(^|[^0-9０-９])(?:〒\s*)?[0-9０-９]{3}[‐‑‒–—―−ー－-][0-9０-９]{4}(?=$|[^0-9０-９])/gu,
+      "$1[郵便番号]",
+    )
+    .replace(
+      /((?:ご?住所|所在地|address)\s*(?:(?:[:：]|は|is)\s*)?)([^。\n\r;；]{2,200})/giu,
+      "$1[住所]",
+    );
+}
+
 function promptJson(value: unknown): string {
-  return JSON.stringify(value).replaceAll("<", "\\u003c").replaceAll(
-    ">",
-    "\\u003e",
-  );
+  return JSON.stringify(
+    value,
+    (_key, nested) =>
+      typeof nested === "string" ? maskPersonalInformation(nested) : nested,
+  ).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e");
 }
 
 export type ProviderModels = Record<ProviderName, {
@@ -869,11 +891,14 @@ export class DeepSeekProvider implements AiProvider {
           },
         );
         if (!response.ok) {
+          await response.body?.cancel().catch(() => undefined);
           throw Object.assign(new Error("DEEPSEEK_REQUEST_FAILED"), {
             status: response.status,
           });
         }
-        return await response.json() as DeepSeekResponse;
+        return JSON.parse(
+          await readResponseTextWithinLimit(response),
+        ) as DeepSeekResponse;
       } finally {
         clearTimeout(timeout);
       }
@@ -1091,12 +1116,15 @@ export class AnthropicProvider implements AiProvider {
           },
         );
         if (!response.ok) {
+          await response.body?.cancel().catch(() => undefined);
           throw Object.assign(new Error("ANTHROPIC_REQUEST_FAILED"), {
             status: response.status,
           });
         }
         return {
-          body: await response.json() as AnthropicResponse,
+          body: JSON.parse(
+            await readResponseTextWithinLimit(response),
+          ) as AnthropicResponse,
           requestId: response.headers.get("request-id"),
         };
       } finally {

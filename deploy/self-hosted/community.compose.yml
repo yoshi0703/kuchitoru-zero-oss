@@ -7,6 +7,10 @@ services:
       SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
       SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
       SUPABASE_JWKS: ${JWT_JWKS}
+      # The upstream dispatcher has one JWT switch for every function. Keep it
+      # disabled so public/callback and scheduler-token routes reach handlers
+      # that enforce the authentication appropriate to each route.
+      VERIFY_JWT: "false"
       ALLOWED_ORIGINS: ${SITE_URL}
       MEO_APP_ORIGIN: ${SITE_URL}
       AI_CREDENTIALS_MASTER_KEY_V1: ${AI_CREDENTIALS_MASTER_KEY_V1}

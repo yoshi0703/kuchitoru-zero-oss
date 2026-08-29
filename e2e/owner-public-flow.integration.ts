@@ -27,6 +27,8 @@ const turnstileToken = requiredEnvironment(
   'KUCHITORU_INTEGRATION_TURNSTILE_TOKEN',
 )
 
+test.use({ stubLocalRuntime: false })
+
 function requiredEnvironment(name: string) {
   const value = process.env[name]?.trim()
   if (!value) throw new Error(`${name} is required by the local integration test`)
@@ -85,9 +87,11 @@ test.describe('real local Supabase integration', () => {
   })
 
   test('store isolation and saved answers work without BYOK credentials', async ({
+    localRuntime,
     page,
     runtimeErrors,
   }) => {
+    expect(localRuntime).toBe(false)
     await page.route('**/runtime-config.js', async (route) => {
       await route.fulfill({
         body: 'window.__KUCHITORU_RUNTIME_CONFIG__={}',

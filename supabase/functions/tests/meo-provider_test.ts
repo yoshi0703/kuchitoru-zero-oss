@@ -10,10 +10,30 @@ import {
   type GoogleToken,
   instagramAuthorizationUrl,
   InstagramClient,
+  meoProviderInternals,
 } from "../_shared/meo-provider.ts";
-import { assert, assertEquals } from "./assert.ts";
+import { assert, assertEquals, assertRejects } from "./assert.ts";
 
 const rawKey = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
+
+Deno.test("MEO provider JSON rejects an oversized response before buffering", async () => {
+  await assertRejects(
+    () =>
+      meoProviderInternals.providerJson(
+        () =>
+          Promise.resolve(
+            new Response("{}", {
+              status: 200,
+              headers: { "Content-Length": "2000001" },
+            }),
+          ),
+        "https://provider.example.test/resource",
+        { method: "GET" },
+        "PROVIDER_FETCH_FAILED",
+      ),
+    "PROVIDER_RESPONSE_TOO_LARGE",
+  );
+});
 
 Deno.test("external tokens are encrypted with a provider-scoped credential domain", async () => {
   const cipher = await VersionedCredentialCipher.fromBase64Keys(

@@ -1,7 +1,9 @@
 import { expect, test } from './fixtures'
 test('app shell renders the Kuchitoru Zero product without a framework overlay', async ({
+  localRuntime,
   page,
 }) => {
+  expect(localRuntime).toBe(true)
   const response = await page.goto('/')
 
   expect(response?.ok()).toBe(true)

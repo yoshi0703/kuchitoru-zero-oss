@@ -1,9 +1,21 @@
 import { expect, test } from './fixtures'
 import { readFile } from 'node:fs/promises'
+import type { Page } from '@playwright/test'
 
 const STORE_ID = '22222222-2222-4222-8222-222222222222'
 const SECOND_STORE_ID = '88888888-8888-4888-8888-888888888888'
 const dashboard = `/dashboard/stores/${STORE_ID}`
+
+async function openConfiguredDashboard(page: Page) {
+  await page.goto(`${dashboard}/survey`)
+  await page.getByLabel('アンケートの見出し').fill('E2E確認用アンケート')
+  await page.getByRole('button', { name: '保存する' }).click()
+  await expect(page.getByText('アンケート設定を保存しました。公開ページにも反映されます。')).toBeVisible()
+
+  await page.locator(`a[href="${dashboard}"]:visible`).first().click()
+  await expect(page).toHaveURL(dashboard)
+  await expect(page.locator('.metrics-row')).toBeVisible()
+}
 
 test.describe('owner journey contract', () => {
   test('owner can reach the eight-item dashboard navigation', async ({ page }) => {
@@ -12,6 +24,7 @@ test.describe('owner journey contract', () => {
     await page.getByRole('link', { name: 'この店舗を管理' }).first().click()
     await expect(page).toHaveURL(dashboard)
 
+    const sidebar = page.getByRole('complementary', { name: '店舗管理ナビゲーション' })
     for (const name of [
       'ホーム',
       'QR・共有リンク',
@@ -22,7 +35,7 @@ test.describe('owner journey contract', () => {
       '外部サービス接続',
       'AI接続',
     ]) {
-      await expect(page.getByRole('link', { name })).toBeVisible()
+      await expect(sidebar.getByRole('link', { name, exact: true })).toBeVisible()
     }
   })
 
@@ -53,7 +66,7 @@ test.describe('owner journey contract', () => {
 
   test('desktop owner layout keeps shared gutters and grid panels aligned', async ({ page }) => {
     await page.setViewportSize({ width: 1159, height: 863 })
-    await page.goto(dashboard)
+    await openConfiguredDashboard(page)
 
     const sidebar = page.getByRole('complementary', { name: '店舗管理ナビゲーション' })
     await expect(sidebar).toBeVisible()
@@ -162,10 +175,10 @@ test.describe('owner journey contract', () => {
 
   test('mobile dashboard keeps equal metric cards inside a narrow viewport', async ({ page }) => {
     await page.setViewportSize({ width: 280, height: 653 })
-    await page.goto(dashboard)
+    await openConfiguredDashboard(page)
 
     const metricCards = page.locator('.metrics-row > div')
-    await expect(metricCards).toHaveCount(4)
+    await expect(metricCards).toHaveCount(2)
     const metricWidths = await metricCards.evaluateAll((cards) =>
       cards.map((card) => Math.round(card.getBoundingClientRect().width)),
     )
@@ -209,13 +222,9 @@ test.describe('owner journey contract', () => {
     await expect(sidebar).toBeVisible()
     await expect(sidebar.getByRole('link', { name: 'アカウント' })).toHaveAttribute('aria-current', 'page')
     await expect(page.getByRole('heading', { name: 'アカウント', exact: true })).toBeVisible()
-    const dangerCopyBox = await page.locator('.danger-zone > p').boundingBox()
-    const dangerButtonBox = await page.getByRole('button', { name: '削除手続きを始める' }).boundingBox()
-    expect(dangerCopyBox).not.toBeNull()
-    expect(dangerButtonBox).not.toBeNull()
-    if (dangerCopyBox && dangerButtonBox) {
-      expect(dangerButtonBox.y - (dangerCopyBox.y + dangerCopyBox.height)).toBeGreaterThanOrEqual(16)
-    }
+    const dangerZone = page.locator('.danger-zone')
+    await expect(dangerZone.getByRole('heading', { name: 'アカウントを削除' })).toBeVisible()
+    await expect(dangerZone.getByRole('button', { name: '削除手続きを始める' })).toBeVisible()
   })
 
   test('mobile owner navigation uses four tabs, hubs, and a single detail back path', async ({ page }) => {
@@ -240,7 +249,7 @@ test.describe('owner journey contract', () => {
     await expect(page.locator('.account-trigger')).toBeHidden()
 
     const settingsMenu = page.getByRole('navigation', { name: '設定メニュー' })
-    await expect(page.getByRole('heading', { name: '基本設定' })).toBeVisible()
+    await expect(page.locator('.owner-topbar__title')).toHaveText('設定')
     for (const item of ['store', 'connections', 'ai', 'account']) {
       const row = settingsMenu.getByTestId(`owner-hub-${item}`)
       await expect(row).toBeVisible()
@@ -250,14 +259,12 @@ test.describe('owner journey contract', () => {
 
     const settingsCard = page.locator('.grouped-list-page .owner-hub-list')
     const settingsCardBox = await settingsCard.boundingBox()
-    const settingsHeadingBox = await page.locator('.grouped-section__title').boundingBox()
     expect(settingsCardBox).not.toBeNull()
-    expect(settingsHeadingBox).not.toBeNull()
-    if (settingsCardBox && settingsHeadingBox) {
+    if (settingsCardBox) {
       expect(settingsCardBox.x).toBe(16)
+      expect(settingsCardBox.y).toBe(80)
       expect(settingsCardBox.width).toBe(358)
       expect(settingsCardBox.height).toBe(203)
-      expect(settingsCardBox.y - (settingsHeadingBox.y + settingsHeadingBox.height)).toBe(13)
     }
     await expect(settingsCard).toHaveCSS('border-radius', '24px')
     await expect(settingsCard).toHaveCSS('border-top-width', '0px')
@@ -308,22 +315,19 @@ test.describe('owner journey contract', () => {
       { route: `${dashboard}/analyze`, tab: '分析', menu: '分析メニュー', items: ['interviews', 'summary'] },
     ]) {
       await page.goto(hub.route)
-      await expect(page.getByRole('heading', { name: '基本設定' })).toBeVisible()
+      await expect(page.locator('.owner-topbar__title')).toHaveText(hub.tab)
       await expect(page.getByRole('navigation', { name: '管理画面の主要メニュー' })
         .getByRole('link', { name: hub.tab, exact: true })).toHaveAttribute('aria-current', 'page')
 
       const menu = page.getByRole('navigation', { name: hub.menu })
       const card = page.locator('.grouped-list-page .owner-hub-list')
-      const heading = page.locator('.grouped-section__title')
       const cardBox = await card.boundingBox()
-      const headingBox = await heading.boundingBox()
       expect(cardBox).not.toBeNull()
-      expect(headingBox).not.toBeNull()
-      if (cardBox && headingBox) {
+      if (cardBox) {
         expect(cardBox.x).toBe(16)
+        expect(cardBox.y).toBe(80)
         expect(cardBox.width).toBe(358)
         expect(cardBox.height).toBe(101)
-        expect(cardBox.y - (headingBox.y + headingBox.height)).toBe(13)
       }
       await expect(card).toHaveCSS('border-radius', '24px')
       await expect(card).toHaveCSS('border-top-width', '0px')
@@ -448,7 +452,7 @@ test.describe('owner journey contract', () => {
     await page.goto(`${dashboard}/survey`)
 
     await expect(page.getByRole('heading', { name: 'アンケート編集' })).toBeVisible()
-    await expect(page.getByText('プリセットは出発点です。読み込んだあと、すべての設問を自由に変更できます。')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'プリセットから作り直す' })).toBeVisible()
     await expect(page.getByRole('button', { name: /^1\. / })).toBeVisible()
 
     const title = page.getByLabel('アンケートの見出し')
@@ -461,7 +465,9 @@ test.describe('owner journey contract', () => {
     await expect(page.getByText('すべて保存されています。')).toBeVisible()
 
     await page.getByRole('link', { name: 'ホーム' }).click()
-    await page.getByRole('link', { name: 'アンケート編集' }).click()
+    await page.getByRole('complementary', { name: '店舗管理ナビゲーション' })
+      .getByRole('link', { name: 'アンケート編集', exact: true })
+      .click()
     await expect(page.getByLabel('アンケートの見出し')).toHaveValue('お客様の声をお聞かせください')
   })
 

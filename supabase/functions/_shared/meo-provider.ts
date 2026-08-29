@@ -2,6 +2,7 @@ import type {
   CredentialCipher,
   EncryptedCredential,
 } from "./ai-credentials.ts";
+import { readResponseTextWithinLimit } from "./external-response.ts";
 
 export type ExternalProvider = "google_business" | "instagram" | "dataforseo";
 
@@ -175,8 +176,7 @@ async function providerJson(
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetcher(url, { ...init, signal: controller.signal });
-    const text = await response.text();
-    if (text.length > 2_000_000) throw new Error("PROVIDER_RESPONSE_TOO_LARGE");
+    const text = await readResponseTextWithinLimit(response);
     let data: unknown;
     try {
       data = text ? JSON.parse(text) : {};

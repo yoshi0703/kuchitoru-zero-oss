@@ -2,7 +2,12 @@ import { expect, test as base } from '@playwright/test'
 
 interface GuardFixtures {
   externalRequestAttempts: string[]
+  localRuntime: boolean
   runtimeErrors: string[]
+}
+
+interface GuardOptions {
+  stubLocalRuntime: boolean
 }
 
 const loopbackHosts = new Set(['127.0.0.1', '::1', 'localhost'])
@@ -12,7 +17,8 @@ function sanitizedRequestTarget(rawUrl: string) {
   return `${url.origin}${url.pathname}`
 }
 
-export const test = base.extend<GuardFixtures>({
+export const test = base.extend<GuardFixtures & GuardOptions>({
+  stubLocalRuntime: [true, { option: true }],
   externalRequestAttempts: [
     async ({ context }, use) => {
       const attempts = [] as string[]
@@ -39,6 +45,35 @@ export const test = base.extend<GuardFixtures>({
       expect(attempts, 'E2E tests must not contact real external services').toEqual(
         [],
       )
+    },
+    { auto: true },
+  ],
+  localRuntime: [
+    async ({ page, stubLocalRuntime }, use) => {
+      if (stubLocalRuntime) {
+        await page.route('**/runtime-config.js', async (route) => {
+          await route.fulfill({
+            body: 'window.__KUCHITORU_RUNTIME_CONFIG__ = {}',
+            contentType: 'application/javascript',
+            status: 200,
+          })
+        })
+        await page.route('**/functions/v1/owner-api/v2/stores/*/feature-capabilities', async (route) => {
+          await route.fulfill({
+            contentType: 'application/json',
+            json: {
+              success: true,
+              data: {
+                serverTime: '2026-08-11T00:00:00.000Z',
+                features: [],
+              },
+            },
+            status: 200,
+          })
+        })
+      }
+
+      await use(stubLocalRuntime)
     },
     { auto: true },
   ],

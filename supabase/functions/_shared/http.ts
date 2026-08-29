@@ -383,7 +383,7 @@ export function parseAllowedOrigins(
   return origins;
 }
 
-async function readRequestTextWithinLimit(
+export async function readRequestTextWithinLimit(
   request: Request,
   maxBytes: number,
 ): Promise<string> {

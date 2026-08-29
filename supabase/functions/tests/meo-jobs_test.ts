@@ -166,6 +166,34 @@ Deno.test("meo worker rejects missing tokens and browser origins", async () => {
   assertEquals(meoJobsInternals.secureEqual("same", "different"), false);
 });
 
+Deno.test("meo worker cancels an oversized body while receiving it", async () => {
+  const harness = repositoryHarness();
+  const app = createMeoJobsApp(
+    dependencyBase(harness.repository, await cipher()),
+  );
+  const chunk = new Uint8Array(meoJobsInternals.maxBodyBytes);
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      controller.enqueue(chunk);
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+
+  const response = await app.request("/meo-jobs/run", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${schedulerToken}` },
+    body,
+  });
+
+  assertEquals(response.status, 413);
+  assertEquals(await response.json(), { error: "PAYLOAD_TOO_LARGE" });
+  assertEquals(cancelled, true);
+  assertEquals(harness.events, []);
+});
+
 Deno.test("rank polling decrypts the owner DataForSEO connection", async () => {
   const credentialCipher = await cipher();
   const harness = repositoryHarness();
