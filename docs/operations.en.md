@@ -24,7 +24,8 @@ The Docker installation does not automatically update the Supabase bundle. Use o
 
 ## Monitoring
 
-- Web `/healthz`
+- availability of Web `/_deployment.json` and its `buildSha`, `releaseChannel`, and Supabase URL
+- availability of the Web home page
 - Supabase gateway, Auth, Functions, and PostgreSQL health
 - 5xx rate and function timeouts
 - migration failures, job failures, and confirmed external action results

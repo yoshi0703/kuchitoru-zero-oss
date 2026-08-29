@@ -24,7 +24,8 @@ Docker版のSupabase bundleは自動更新しません。Community Releaseが指
 
 ## 監視
 
-- Web `/healthz`
+- Web `/_deployment.json` の到達性と、`buildSha`、`releaseChannel`、Supabase URL
+- Webトップページの到達性
 - Supabase gateway、Auth、Functions、PostgreSQLのhealth
 - 5xx率とFunction timeout
 - Migration失敗、ジョブ失敗、確認済み外部操作の結果

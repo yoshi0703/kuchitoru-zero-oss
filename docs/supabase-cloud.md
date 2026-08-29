@@ -6,14 +6,28 @@
 
 Supabase DashboardでProjectを作成し、Project ref、Project URL、publishable key、database passwordを控えます。Regionと料金プランは、保存データ、利用地域、バックアップ要件に合わせて選びます。
 
-## 2. CLIを接続してDBを作る
+## 2. Cloud設定をそろえる
+
+Migrationの前に、Supabase Dashboardで次を設定します。`supabase/config.toml` はローカル開発用のURLを含むため、Cloudへそのままpushしないでください。
+
+- Data APIで公開するschemaを `api` だけにする
+- Extra search pathを `api, extensions` にする
+- AuthのSite URLを配信するWebのURLにする
+- Redirect URLへ同じWebの `/auth/callback` と `/auth/update-password` を登録する
+- メール確認とパスワード再設定を使える本番SMTPを設定する
+- パスワードを8文字以上とし、大文字、小文字、数字、記号を必須にする
+
+## 3. CLIを接続してDBを作る
 
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
 pnpm exec supabase login
 pnpm exec supabase link --project-ref YOUR_PROJECT_REF
+pnpm exec supabase migration list --linked
+pnpm exec supabase db push --linked --dry-run
 pnpm exec supabase db push --linked
+pnpm exec supabase migration list --linked
 ```
 
 `db push` の直前に、接続先が空のCommunity専用Projectであることを確認してください。v1.0.0は1本のCommunity baseline Migrationを適用します。通常のMigrationは架空データを投入しません。
@@ -31,7 +45,7 @@ psql \
   --file supabase/seed.sql
 ```
 
-## 3. Edge FunctionのSecretを設定する
+## 4. Edge FunctionのSecretを設定する
 
 次の3値には、それぞれ別の32 byte standard Base64値を使います。
 
@@ -72,7 +86,7 @@ Google Business Profileを使う場合だけ、`GOOGLE_BUSINESS_CLIENT_ID`、`GO
 
 バックグラウンドジョブを使う場合だけ、`MEO_JOBS_ENABLED=true` と32文字以上の `MEO_JOBS_TOKEN` を追加します。
 
-## 4. 5 Functionsを配備する
+## 5. 5 Functionsを配備する
 
 Functionsを列挙して配備します。`meo-api` はOAuth callback、`meo-jobs` は専用Bearer token、`public-interview` は短命session tokenをFunction内で検証するため、該当3つだけgatewayのJWT検証を無効にします。
 
@@ -89,7 +103,7 @@ pnpm exec supabase functions deploy public-interview \
   --no-verify-jwt --project-ref YOUR_PROJECT_REF
 ```
 
-## 5. Webをビルドして配信する
+## 6. Webをビルドして配信する
 
 Vite値をコマンドと同じ環境へ渡してビルドします。これにより、npm lifecycleの `prebuild` と続くVite buildの両方へ同じ公開設定とGit SHAが渡ります。
 
@@ -106,7 +120,7 @@ pnpm build
 
 `dist/` を静的ホスティングへ配信し、SPA fallbackを `/index.html` に設定してTLSを有効にします。service role相当のkey、AIマスターキー、provider credentialをWebホストへ設定しないでください。
 
-## 6. 確認
+## 7. 確認
 
 [self-hosting.md](self-hosting.md) の確認項目に加え、次を確認します。
 

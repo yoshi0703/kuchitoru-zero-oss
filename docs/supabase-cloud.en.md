@@ -6,14 +6,28 @@ Use a new Supabase Cloud project dedicated to the Community production environme
 
 Create a project in the Supabase Dashboard and record its project ref, Project URL, publishable key, and database password. Select a region and plan appropriate for stored data, user location, and backup requirements.
 
-## 2. Link the CLI and create the database
+## 2. Configure the Cloud project
+
+Before applying migrations, configure the following in the Supabase Dashboard. Do not push `supabase/config.toml` directly to Cloud because it contains local-development URLs.
+
+- expose only the `api` schema through the Data API;
+- set the extra search path to `api, extensions`;
+- set the Auth Site URL to the published web origin;
+- add `/auth/callback` and `/auth/update-password` on that origin as redirect URLs;
+- configure production SMTP for confirmation and password-reset email;
+- require at least eight characters with uppercase, lowercase, digits, and symbols.
+
+## 3. Link the CLI and create the database
 
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
 pnpm exec supabase login
 pnpm exec supabase link --project-ref YOUR_PROJECT_REF
+pnpm exec supabase migration list --linked
+pnpm exec supabase db push --linked --dry-run
 pnpm exec supabase db push --linked
+pnpm exec supabase migration list --linked
 ```
 
 Immediately before `db push`, confirm that the target is an empty, Community-only project. Version 1.0.0 applies one Community baseline migration. Normal migrations never insert fictional data.
@@ -31,7 +45,7 @@ psql \
   --file supabase/seed.sql
 ```
 
-## 3. Set Edge Function secrets
+## 4. Set Edge Function secrets
 
 Generate three separate 32-byte standard Base64 values:
 
@@ -72,7 +86,7 @@ Only when Google Business Profile is enabled, add `GOOGLE_BUSINESS_CLIENT_ID`, `
 
 Only when background jobs are used, add `MEO_JOBS_ENABLED=true` and a `MEO_JOBS_TOKEN` of at least 32 characters.
 
-## 4. Deploy the five Functions
+## 5. Deploy the five Functions
 
 Deploy an explicit list. `meo-api` validates OAuth callbacks, `meo-jobs` validates its dedicated bearer token, and `public-interview` validates short-lived session tokens in application code, so only those three disable gateway JWT verification.
 
@@ -89,7 +103,7 @@ pnpm exec supabase functions deploy public-interview \
   --no-verify-jwt --project-ref YOUR_PROJECT_REF
 ```
 
-## 5. Build and publish the web app
+## 6. Build and publish the web app
 
 Pass Vite values in the same command environment. This makes the same public configuration and Git SHA available to both the npm lifecycle `prebuild` and the following Vite build.
 
@@ -106,7 +120,7 @@ pnpm build
 
 Publish `dist/` to a static host, configure SPA fallback to `/index.html`, and enable TLS. Never place a service-role-equivalent key, AI master key, or provider credential in the web host environment.
 
-## 6. Verify
+## 7. Verify
 
 In addition to [self-hosting.en.md](self-hosting.en.md), confirm that:
 
