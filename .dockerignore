@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.*
+!.env.example
+node_modules
+dist
+coverage
+playwright-report
+test-results
+blog
+outputs
+deploy/self-hosted/supabase
+src/assets/landing/launch-main-poster.jpg
+src/assets/landing/launch-main.mp4
+src/assets/landing/shigureni-*.png
+*.log

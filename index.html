@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png?v=20260805-transparent" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260805-transparent" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#115e59" />
+    <script>
+      (() => {
+        let locale = null
+        try {
+          const stored = localStorage.getItem('kuchitoru.locale')
+          if (stored === 'ja' || stored === 'en') locale = stored
+        } catch { /* Continue with browser languages. */ }
+        if (!locale) {
+          for (const language of navigator.languages || [navigator.language]) {
+            const candidate = language.toLowerCase().split('-')[0]
+            if (candidate === 'ja' || candidate === 'en') { locale = candidate; break }
+          }
+        }
+        document.documentElement.lang = locale || 'ja'
+      })()
+    </script>
+    <script>
+      (() => {
+        const key = 'kuchitoru.theme'
+        let mode = 'system'
+        try {
+          const stored = localStorage.getItem(key)
+          if (stored === 'light' || stored === 'dark' || stored === 'system') mode = stored
+        } catch {
+          // Use the system preference when storage is unavailable.
+        }
+        const dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+        const theme = dark ? 'dark' : 'light'
+        document.documentElement.dataset.theme = theme
+        document.documentElement.dataset.themeMode = mode
+        document.documentElement.style.colorScheme = theme
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#111111' : '#115e59')
+      })()
+    </script>
+    <meta
+      name="description"
+      content="クチトルZero Community — QRアンケートとMEO運用を自社のAPIキーで導入できるセルフホスト版"
+    />
+    <title>クチトルZero Community</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="/runtime-config.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
