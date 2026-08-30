@@ -1,9 +1,9 @@
-FROM node:24.19.0-alpine AS build
+FROM node:24.19.0-bookworm-slim AS build
 
 WORKDIR /app
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN corepack pnpm install --frozen-lockfile
 
 COPY . .
@@ -28,7 +28,7 @@ RUN corepack pnpm build
 FROM nginxinc/nginx-unprivileged:1.29.5-alpine
 
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --chmod=755 docker/runtime-config.sh /docker-entrypoint.d/40-kuchitoru-runtime-config.sh
+COPY docker/runtime-config.sh /docker-entrypoint.d/40-kuchitoru-runtime-config.sh
 COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 8080

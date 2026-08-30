@@ -1,4 +1,9 @@
 services:
+  db:
+    # Preserve PostgreSQL ownership on macOS VM-backed Docker mounts.
+    volumes:
+      - community-db-data:/var/lib/postgresql/data
+
   functions:
     volumes:
       - ../../../supabase/functions:/home/deno/functions:ro,z
@@ -111,3 +116,6 @@ services:
         condition: service_healthy
     ports:
       - "${WEB_PORT:-3000}:8080"
+
+volumes:
+  community-db-data:
