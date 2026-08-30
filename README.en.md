@@ -1,21 +1,48 @@
-# Kuchitoru Zero Community
+# Kuchitoru ZERO Community
 
 [日本語](README.md)
 
-Kuchitoru Zero Community is a self-hosted web application for collecting customer feedback through store-specific QR interviews and drafting review text with API keys supplied by the operator. It also includes connection points for Google Business Profile, Instagram, and DataForSEO, plus a workspace for day-to-day local search operations.
+## Run MEO for free. Yep, you can.
 
-Community is a separate product from the Hosted edition. It does not include billing, credits, trial allowances, an AI gateway, or usage/cost records operated by Kuchitoru. Operators are responsible for third-party API contracts and fees, operations, backups, and monitoring.
+Kuchitoru ZERO Community is open-source software for store operators and agencies that want to manage Google Maps-based customer acquisition, often called MEO in Japan, on their own. It is a good fit for stores that want to run the software themselves before signing up for a monthly subscription. The Community software fee is zero. Collect customer feedback through QR surveys, draft review text and posts, and track search rankings and day-to-day work in one place.
 
-## Features
+We built it, so we figured we might as well publish a Community edition.
 
-- Multiple stores with store-scoped permissions
-- QR interviews, survey settings, response history, and CSV/JSON exports
-- Review drafting with OpenAI, Gemini, DeepSeek, xAI, or Anthropic using BYOK
-- Store-scoped Google Business Profile, Instagram, and DataForSEO connections
-- Post drafts, review reply drafts, rank tracking, work history, and approval logs
-- Progressive Web App support
+**[Install it yourself](#production-installation)** · **[Try it locally](#development)** · **[Want to use it without self-hosting? Try Hosted](https://app.kuchitoru.com/)**
 
-Without an AI key or provider model configuration, store management, QR intake, response management, and manual editing remain available. For each provider used, configure its interview, review, and rewrite model IDs together. External publishing and updates are disabled by default. They run only after an owner/admin enables the store setting and an owner, admin, or editor sends `confirmed: true` for that action. Analysts remain read-only. Version 1.0.0 includes no automatic posting.
+> **What “free” means:** The Community software fee is zero. You are responsible for self-hosting and operations, server costs, and third-party contracts and usage fees for services such as Google, Meta, DataForSEO, and AI providers.
+
+## What you can do
+
+- Collect customer feedback through store-specific QR surveys
+- Draft review text from collected responses
+- Connect Google Business Profile, Instagram, and DataForSEO per store
+- Prepare post and review reply drafts, then track search rankings, work history, and approval logs
+- Manage multiple stores with separate member permissions
+- Configure surveys, retain response history, and export CSV or JSON files
+- Use the app from a phone or desktop browser
+
+Review drafts are based on each visitor's own responses. Do not use them to collect reviews in exchange for incentives or to solicit only positive reviews.
+
+Store management, QR intake, response management, and manual editing work without an AI connection. External publishing and profile updates are disabled by default. They run only after an administrator enables the store setting and an authorized member approves each action. Version 1.0.0 includes no automatic posting.
+
+## Technical details
+
+### AI connections
+
+AI uses BYOK (Bring Your Own Key), which means you supply your own API keys. Supported providers are OpenAI, Gemini, DeepSeek, xAI, and Anthropic. For each provider you use, configure the interview, review, and rewrite model IDs together.
+
+AI keys and DataForSEO credentials are encrypted per store. Read APIs never return a secret; they return only `provider`, `model`, `status`, and `keyLast4`.
+
+### External services and approvals
+
+Google Business Profile and Instagram OAuth credentials, used to authorize access to those external services, are configured as server-side secrets in the self-hosted environment.
+
+External publishing and updates run only after an owner or admin enables the store setting and an owner, admin, or editor sends `confirmed: true` for that action. Analysts remain read-only.
+
+### Web app and release artifacts
+
+The app is a Progressive Web App (PWA), so you can add it to a device from the browser. The published container is hosted on GitHub Container Registry (GHCR) at `ghcr.io/yoshi0703/kuchitoru-zero-oss`. Each release includes an image digest, which identifies its exact contents, a Software Bill of Materials (SBOM), and checksums. Images are signed with OpenID Connect (OIDC) to verify that the signing process ran in GitHub Actions.
 
 ## Requirements
 
@@ -50,13 +77,9 @@ Copy the Project URL and publishable key reported by `pnpm supabase:start` into 
 - Backup, updates, and incident response: [`docs/operations.en.md`](docs/operations.en.md)
 - Architecture and security boundaries: [`docs/architecture.en.md`](docs/architecture.en.md)
 
-The published image is `ghcr.io/yoshi0703/kuchitoru-zero-oss`. Each release includes the image digest, an SBOM, and checksums. Images are signed through GitHub Actions OIDC.
-
 ## Configuration
 
 Required values and optional provider configuration are documented in [`.env.example`](.env.example). The fictional account/store seed never runs during normal startup or database reset. Run `./scripts/self-host.sh seed` explicitly only in a Docker evaluation environment.
-
-Store AI keys and DataForSEO credentials are encrypted per store. Read APIs never return a secret; they return only `provider`, `model`, `status`, and `keyLast4`. Google Business Profile and Instagram OAuth credentials are configured as server-side secrets in the self-hosted environment.
 
 ## Verification
 
@@ -71,6 +94,12 @@ pnpm test:e2e
 
 Automated tests do not call real AI, Google, Meta, or DataForSEO APIs. Use dedicated stores and keys for pre-release manual verification.
 
+## Community and Hosted editions
+
+Community is designed for self-hosting. It does not include billing, credits, trial allowances, the Kuchitoru-operated AI gateway, or Kuchitoru-operated usage and cost records. You are responsible for installation, updates, backups, and monitoring.
+
+The Hosted edition is available at [Kuchitoru ZERO](https://app.kuchitoru.com/). It provides managed infrastructure, billing, and proprietary features that are not included in this repository. The two editions do not use the same codebase or have identical feature sets.
+
 ## License and trademarks
 
 The source code is licensed under the [GNU AGPL version 3 or later](LICENSE). Copyright © 2026 Ranchu Japan LLC.
@@ -82,5 +111,3 @@ Contributions use DCO 1.1 with Signed-off-by lines. See [`CONTRIBUTING.md`](CONT
 ## Support and security reports
 
 Self-hosted installation, updates, and monitoring receive community support. See [`SUPPORT.md`](SUPPORT.md) for scope and [`SECURITY.md`](SECURITY.md) for vulnerability reporting.
-
-The Hosted edition is available at [Kuchitoru Zero](https://app.kuchitoru.com/). Its billing, managed operations, and all proprietary features are not necessarily included in this repository.
