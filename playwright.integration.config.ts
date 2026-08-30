@@ -51,6 +51,7 @@ export default defineConfig({
   timeout: 45_000,
   use: {
     baseURL,
+    locale: 'ja-JP',
     screenshot: 'off',
     trace: 'off',
     video: 'off',
