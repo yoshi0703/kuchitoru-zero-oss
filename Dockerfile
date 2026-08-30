@@ -27,6 +27,10 @@ RUN corepack pnpm build
 
 FROM nginxinc/nginx-unprivileged:1.29.5-alpine
 
+USER root
+RUN apk upgrade --no-cache
+USER 101
+
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker/runtime-config.sh /docker-entrypoint.d/40-kuchitoru-runtime-config.sh
 COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
