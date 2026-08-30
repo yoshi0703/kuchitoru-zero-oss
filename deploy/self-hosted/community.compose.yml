@@ -1,0 +1,121 @@
+services:
+  db:
+    # Preserve PostgreSQL ownership on macOS VM-backed Docker mounts.
+    volumes:
+      - community-db-data:/var/lib/postgresql/data
+
+  functions:
+    volumes:
+      - ../../../supabase/functions:/home/deno/functions:ro,z
+    environment:
+      SUPABASE_URL: http://api-gw:8000
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY}
+      SUPABASE_JWKS: ${JWT_JWKS}
+      # The upstream dispatcher has one JWT switch for every function. Keep it
+      # disabled so public/callback and scheduler-token routes reach handlers
+      # that enforce the authentication appropriate to each route.
+      VERIFY_JWT: "false"
+      ALLOWED_ORIGINS: ${SITE_URL}
+      MEO_APP_ORIGIN: ${SITE_URL}
+      AI_CREDENTIALS_MASTER_KEY_V1: ${AI_CREDENTIALS_MASTER_KEY_V1}
+      AI_CREDENTIALS_ACTIVE_KEY_VERSION: ${AI_CREDENTIALS_ACTIVE_KEY_VERSION:-1}
+      SESSION_TOKEN_DERIVATION_KEY: ${SESSION_TOKEN_DERIVATION_KEY}
+      RATE_LIMIT_HMAC_KEY: ${RATE_LIMIT_HMAC_KEY}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
+      COMMUNITY_GIT_SHA: ${COMMUNITY_BUILD_SHA:-0000000000000000000000000000000000000000}
+      OPENAI_INTERVIEW_MODEL: ${OPENAI_INTERVIEW_MODEL:-}
+      OPENAI_REVIEW_MODEL: ${OPENAI_REVIEW_MODEL:-}
+      OPENAI_REWRITE_MODEL: ${OPENAI_REWRITE_MODEL:-}
+      GEMINI_INTERVIEW_MODEL: ${GEMINI_INTERVIEW_MODEL:-}
+      GEMINI_REVIEW_MODEL: ${GEMINI_REVIEW_MODEL:-}
+      GEMINI_REWRITE_MODEL: ${GEMINI_REWRITE_MODEL:-}
+      DEEPSEEK_INTERVIEW_MODEL: ${DEEPSEEK_INTERVIEW_MODEL:-}
+      DEEPSEEK_REVIEW_MODEL: ${DEEPSEEK_REVIEW_MODEL:-}
+      DEEPSEEK_REWRITE_MODEL: ${DEEPSEEK_REWRITE_MODEL:-}
+      XAI_INTERVIEW_MODEL: ${XAI_INTERVIEW_MODEL:-}
+      XAI_REVIEW_MODEL: ${XAI_REVIEW_MODEL:-}
+      XAI_REWRITE_MODEL: ${XAI_REWRITE_MODEL:-}
+      ANTHROPIC_INTERVIEW_MODEL: ${ANTHROPIC_INTERVIEW_MODEL:-}
+      ANTHROPIC_REVIEW_MODEL: ${ANTHROPIC_REVIEW_MODEL:-}
+      ANTHROPIC_REWRITE_MODEL: ${ANTHROPIC_REWRITE_MODEL:-}
+      GOOGLE_BUSINESS_CLIENT_ID: ${GOOGLE_BUSINESS_CLIENT_ID:-}
+      GOOGLE_BUSINESS_CLIENT_SECRET: ${GOOGLE_BUSINESS_CLIENT_SECRET:-}
+      GOOGLE_BUSINESS_REDIRECT_URI: ${GOOGLE_BUSINESS_REDIRECT_URI:-}
+      INSTAGRAM_APP_ID: ${INSTAGRAM_APP_ID:-}
+      INSTAGRAM_APP_SECRET: ${INSTAGRAM_APP_SECRET:-}
+      INSTAGRAM_REDIRECT_URI: ${INSTAGRAM_REDIRECT_URI:-}
+      INSTAGRAM_API_VERSION: ${INSTAGRAM_API_VERSION:-v25.0}
+      MEO_JOBS_ENABLED: ${MEO_JOBS_ENABLED:-false}
+      MEO_JOBS_TOKEN: ${MEO_JOBS_TOKEN:-}
+      MEO_JOBS_WORKER_ID: ${MEO_JOBS_WORKER_ID:-meo-jobs}
+      MEO_JOBS_BATCH_LIMIT: ${MEO_JOBS_BATCH_LIMIT:-10}
+      MEO_JOBS_LEASE_SECONDS: ${MEO_JOBS_LEASE_SECONDS:-180}
+      MEO_AI_DRAFT_STORE_DAILY_LIMIT: ${MEO_AI_DRAFT_STORE_DAILY_LIMIT:-20}
+      MEO_AI_DRAFT_GLOBAL_DAILY_LIMIT: ${MEO_AI_DRAFT_GLOBAL_DAILY_LIMIT:-500}
+      MEO_RANK_STORE_DAILY_LIMIT: ${MEO_RANK_STORE_DAILY_LIMIT:-1}
+      MEO_DATAFORSEO_RANK_GLOBAL_DAILY_POINT_LIMIT: ${MEO_DATAFORSEO_RANK_GLOBAL_DAILY_POINT_LIMIT:-1000}
+
+  community-migrate:
+    image: supabase/postgres:17.6.1.136
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: ${POSTGRES_PORT}
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ../../../supabase/migrations:/community/migrations:ro
+      - ../migrate.sh:/community/migrate.sh:ro
+    entrypoint: ["/bin/sh", "/community/migrate.sh"]
+
+  community-seed:
+    image: supabase/postgres:17.6.1.136
+    profiles: ["seed"]
+    restart: "no"
+    depends_on:
+      community-migrate:
+        condition: service_completed_successfully
+    environment:
+      PGHOST: db
+      PGPORT: ${POSTGRES_PORT}
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ../../../supabase/seed.sql:/community/seed.sql:ro
+    entrypoint: ["psql", "--set=ON_ERROR_STOP=1", "--file=/community/seed.sql"]
+
+  web:
+    image: ${COMMUNITY_WEB_IMAGE:-ghcr.io/yoshi0703/kuchitoru-zero-oss:v1.0.0}
+    build:
+      context: ../../..
+      dockerfile: Dockerfile
+      args:
+        VITE_APP_ORIGIN: ${SITE_URL}
+        VITE_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+        VITE_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+        VITE_GOOGLE_AUTH_ENABLED: ${VITE_GOOGLE_AUTH_ENABLED:-false}
+        DEPLOY_ENV: production
+        GITHUB_SHA: ${COMMUNITY_BUILD_SHA:-0000000000000000000000000000000000000000}
+    restart: unless-stopped
+    environment:
+      KUCHITORU_APP_ORIGIN: ${SITE_URL}
+      KUCHITORU_SUPABASE_URL: ${SUPABASE_PUBLIC_URL}
+      KUCHITORU_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY}
+      KUCHITORU_TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+    depends_on:
+      community-migrate:
+        condition: service_completed_successfully
+      functions:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-3000}:8080"
+
+volumes:
+  community-db-data:

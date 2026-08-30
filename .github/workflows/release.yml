@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+  security-events: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  release:
+    name: Build, scan, sign, and release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Verify release commit is on main
+        run: |
+          git fetch --no-tags origin main
+          release_commit="$(git rev-parse "${GITHUB_SHA}^{commit}")"
+          main_commit="$(git rev-parse "FETCH_HEAD^{commit}")"
+          if ! git merge-base --is-ancestor "$release_commit" "$main_commit"; then
+            printf 'Release tag %s does not point to a commit on main.\n' "$GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          run_install: false
+          version: 10.34.4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          cache: pnpm
+          node-version: 24.19.0
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify:community
+      - run: pnpm verify:licenses
+      - run: pnpm audit --audit-level high
+      - run: pnpm check
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.ref_name }}
+            ${{ env.IMAGE }}:latest
+          build-args: |
+            GITHUB_SHA=${{ github.sha }}
+            VITE_APP_ORIGIN=https://community.example.invalid
+            VITE_SUPABASE_URL=https://project.example.invalid
+            VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_runtime_configuration_required
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+      - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+      - name: Sign image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: cosign sign --yes --bundle cosign.bundle.json "$IMAGE@$DIGEST"
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ${{ env.IMAGE }}@${{ steps.build.outputs.digest }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+      - name: Prepare release files
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          archive="kuchitoru-zero-community-${GITHUB_REF_NAME}.tar.gz"
+          git archive --format=tar.gz --prefix="kuchitoru-zero-community-${GITHUB_REF_NAME}/" --output "$archive" "$GITHUB_SHA"
+          printf '%s@%s\n' "$IMAGE" "$DIGEST" > image-digest.txt
+          sha256sum "$archive" sbom.spdx.json image-digest.txt cosign.bundle.json > SHA256SUMS
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          generate_release_notes: true
+          files: |
+            kuchitoru-zero-community-${{ github.ref_name }}.tar.gz
+            image-digest.txt
+            sbom.spdx.json
+            cosign.bundle.json
+            SHA256SUMS

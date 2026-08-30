@@ -1,0 +1,130 @@
+.monthly-summary-panel {
+  display: grid;
+  gap: 16px;
+  color: var(--ink);
+}
+
+.monthly-summary-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.monthly-summary-panel__period {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.monthly-summary-panel__section-title h3,
+.monthly-summary-panel__flow h3,
+.monthly-summary-panel__comparison h3 {
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.monthly-summary-panel__change {
+  flex: none;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.monthly-summary-panel__change--positive { color: var(--primary); background: var(--primary-soft); }
+.monthly-summary-panel__change--negative { color: var(--error); background: color-mix(in srgb, var(--error) 12%, var(--surface-raised)); }
+.monthly-summary-panel__change--neutral { color: var(--muted); background: var(--surface-muted); }
+
+.monthly-summary-panel__overview,
+.monthly-summary-panel__details {
+  display: grid;
+  grid-template-columns: minmax(260px, .85fr) minmax(0, 1.4fr);
+  gap: 16px;
+}
+
+.monthly-summary-panel__completion,
+.monthly-summary-panel__flow,
+.monthly-summary-panel__ratings,
+.monthly-summary-panel__comparison {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-raised);
+}
+
+.monthly-summary-panel__completion {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+  background: var(--primary-soft);
+  border-color: transparent;
+}
+
+.monthly-summary-panel__completion > span { color: var(--primary); font-size: 13px; font-weight: 700; }
+.monthly-summary-panel__completion-value { display: flex; align-items: baseline; margin: 8px 0 14px; color: var(--primary); }
+.monthly-summary-panel__completion-value strong { font-size: 56px; line-height: 1; letter-spacing: -0.06em; font-variant-numeric: tabular-nums; }
+.monthly-summary-panel__completion-value small { margin-left: 3px; font-size: 18px; font-weight: 700; }
+.monthly-summary-panel__completion p { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+.monthly-summary-panel__progress { height: 7px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--primary) 18%, transparent); }
+.monthly-summary-panel__progress span { display: block; width: var(--monthly-summary-progress); height: 100%; border-radius: inherit; background: var(--primary); }
+
+.monthly-summary-panel__flow { padding: 20px 24px; }
+.monthly-summary-panel__flow h3 { margin-bottom: 8px; font-size: 15px; }
+.monthly-summary-panel__metric-list { display: grid; }
+.monthly-summary-panel__metric-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 64px; border-top: 1px solid var(--border); }
+.monthly-summary-panel__metric-row > div { display: grid; gap: 2px; }
+.monthly-summary-panel__metric-row strong { font-size: 14px; font-weight: 600; }
+.monthly-summary-panel__metric-row span { color: var(--muted); font-size: 12px; }
+.monthly-summary-panel__metric-row b { flex: none; font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+.monthly-summary-panel__details { grid-template-columns: minmax(0, 1.4fr) minmax(260px, .85fr); }
+.monthly-summary-panel__ratings { padding: 22px 24px; }
+.monthly-summary-panel__section-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.monthly-summary-panel__section-title h3 { font-size: 15px; }
+.monthly-summary-panel__section-title p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.monthly-summary-panel__rating-average { display: flex; align-items: baseline; gap: 3px; }
+.monthly-summary-panel__rating-average span { margin-right: 4px; color: var(--muted); font-size: 12px; }
+.monthly-summary-panel__rating-average strong { font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+.monthly-summary-panel__rating-average small { color: var(--muted); font-size: 12px; }
+.monthly-summary-panel__rating-bars { display: grid; gap: 8px; margin-top: 20px; }
+.monthly-summary-panel__rating-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) 40px; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.monthly-summary-panel__rating-row > div { height: 6px; overflow: hidden; border-radius: 999px; background: var(--surface-muted); }
+.monthly-summary-panel__rating-row i { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+.monthly-summary-panel__rating-row b { color: var(--ink); font-weight: 600; text-align: right; }
+.monthly-summary-panel__rating-empty { display: grid; min-height: 120px; place-items: center; margin-top: 16px; color: var(--muted); background: var(--surface-muted); border-radius: 8px; font-size: 13px; text-align: center; }
+
+.monthly-summary-panel__comparison { padding: 22px 24px; }
+.monthly-summary-panel__comparison > span { color: var(--muted); font-size: 12px; font-weight: 600; }
+.monthly-summary-panel__comparison h3 { margin-top: 8px; font-size: 18px; line-height: 1.45; }
+.monthly-summary-panel__comparison p { margin: 9px 0 20px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.monthly-summary-panel__comparison dl { display: grid; gap: 8px; margin: 0; }
+.monthly-summary-panel__comparison dl > div { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--border); }
+.monthly-summary-panel__comparison dt { color: var(--muted); font-size: 12px; }
+.monthly-summary-panel__comparison dd { margin: 0; font-size: 14px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 760px) {
+  .monthly-summary-panel__header { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .monthly-summary-panel__overview,
+  .monthly-summary-panel__details { grid-template-columns: 1fr; }
+  .monthly-summary-panel__completion { min-height: 220px; }
+  .monthly-summary-panel__details .monthly-summary-panel__comparison { order: -1; }
+}
+
+@media (max-width: 480px) {
+  .monthly-summary-panel { gap: 12px; }
+  .monthly-summary-panel__completion,
+  .monthly-summary-panel__flow,
+  .monthly-summary-panel__ratings,
+  .monthly-summary-panel__comparison { padding: 18px; }
+  .monthly-summary-panel__completion-value strong { font-size: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .monthly-summary-panel__progress span { transition: none; }
+}

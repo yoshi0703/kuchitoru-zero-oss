@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.window", "dom", "dom.iterable", "esnext"]
+  },
+  "nodeModulesDir": "auto",
+  "imports": {
+    "@google/genai": "npm:@google/genai@2.11.0",
+    "@supabase/server": "npm:@supabase/server@1.3.0",
+    "@supabase/server/adapters/hono": "npm:@supabase/server@1.3.0/adapters/hono",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.110.2",
+    "hono": "npm:hono@4.12.28",
+    "hono/http-exception": "npm:hono@4.12.28/http-exception",
+    "jose": "jsr:@panva/jose@6",
+    "openai": "npm:openai@6.46.0",
+    "zod": "npm:zod@4.4.3"
+  },
+  "tasks": {
+    "check": "deno check --frozen main/index.ts owner-api/index.ts meo-api/index.ts meo-workspace/index.ts public-interview/index.ts meo-jobs/index.ts",
+    "test": "deno test --frozen --allow-env --allow-net=127.0.0.1 --no-check=remote"
+  }
+}
