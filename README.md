@@ -30,7 +30,7 @@ AIを設定しなくても、店舗管理、QR受付、回答管理、手動編�
 
 ### AI接続
 
-AIは、利用者自身が契約したAIサービスのキーを使う方式（BYOK）です。OpenAI、Gemini、DeepSeek、xAI、Anthropicに対応しています。利用するAI提供元ごとに、interview、review、rewriteの3モデルIDをまとめて設定します。
+AIは、利用者自身が契約したAIサービスのキーを使う方式（BYOK）です。OpenAI、Gemini、DeepSeek、xAI、Anthropicに対応しています。利用するAI提供元ごとに、聞き取り、口コミ文案、書き直しに使う3つのモデルID（`interview`、`review`、`rewrite`）をまとめて設定します。
 
 AIキーとDataForSEO認証情報は店舗単位で暗号化保存します。取得APIは秘密値を返さず、`provider`、`model`、`status`、`keyLast4`だけを返します。
 
@@ -68,7 +68,7 @@ pnpm supabase:reset
 pnpm dev
 ```
 
-`pnpm supabase:start` の出力にあるProject URLとpublishable keyを `.env.local` に設定します。APIキー、service role key、`AI_CREDENTIALS_MASTER_KEY_V1` は `VITE_` から始まる変数へ入れないでください。
+`pnpm supabase:start` の出力にあるプロジェクトURLと公開用キー（publishable key）を `.env.local` に設定します。APIキー、管理者権限のキー（service role key）、`AI_CREDENTIALS_MASTER_KEY_V1` は `VITE_` から始まる変数へ入れないでください。
 
 ## 本番導入
 
@@ -110,4 +110,4 @@ pnpm test:e2e
 
 ## サポートと脆弱性報告
 
-自己ホスト環境の構築・更新・監視はコミュニティーでのサポートです。問い合わせ範囲は [`SUPPORT.md`](SUPPORT.md)、脆弱性の連絡方法は [`SECURITY.md`](SECURITY.md) を確認してください。
+自己ホスト環境の構築・更新・監視については、GitHub上のコミュニティーで対応します。問い合わせ範囲は [`SUPPORT.md`](SUPPORT.md)、脆弱性の連絡方法は [`SECURITY.md`](SECURITY.md) を確認してください。
