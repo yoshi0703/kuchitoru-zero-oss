@@ -13,6 +13,10 @@ permissions:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}
+  VITE_APP_ORIGIN: http://127.0.0.1:4173
+  VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_fixture
+  VITE_SUPABASE_URL: http://127.0.0.1:56321
+  VITE_TURNSTILE_SITE_KEY: turnstile_ci_fixture
 
 jobs:
   release:
