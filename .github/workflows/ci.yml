@@ -75,7 +75,7 @@ jobs:
       - run: pnpm lint:edge
       - run: pnpm typecheck:edge
       - run: pnpm test:edge
-      - run: pnpm supabase:start
+      - run: pnpm exec supabase start --exclude edge-runtime
       - run: pnpm supabase:reset
       - name: Database schema and RLS tests
         run: pnpm test:db
