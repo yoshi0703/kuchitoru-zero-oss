@@ -97,7 +97,7 @@ jobs:
           git archive --format=tar.gz --prefix="kuchitoru-zero-community-${GITHUB_REF_NAME}/" --output "$archive" "$GITHUB_SHA"
           printf '%s@%s\n' "$IMAGE" "$DIGEST" > image-digest.txt
           sha256sum "$archive" sbom.spdx.json image-digest.txt cosign.bundle.json > SHA256SUMS
-      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           generate_release_notes: true
           files: |
